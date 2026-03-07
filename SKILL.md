@@ -1,21 +1,33 @@
 ---
 name: skill-architect
-description: ALWAYS invoke for Agent Skills creation, evaluation, or import when user says "create skill", "build skill", "evaluate skill", "review skill", "import skill", or discusses packaging expertise into reusable instructions. Do NOT create or modify skills directly -- use this protocol first.
+description: "ALWAYS invoke for Agent Skills lifecycle: create, evaluate, import, or fix skills. Handles создай скилл, оцени скилл, build skill, review skill. Do NOT create/modify/evaluate skills directly -- use this protocol first."
 ---
 
-# Skill Architect Protocol v2
+# Skill Architect Protocol v3
 
 Gatekeeper for Agent Skills lifecycle. No creation proceeds until ALL gates pass.
-Three modes: Create (A), Evaluate (B), Import (C).
+Four modes: Create (A), Evaluate (B), Import (C), Edit (D).
 
 ## Gate 0: Intent Classification
 
 ```
+IF specific symptom named ("не триггерится на X", "пропускает шаг N", "выдаёт формат Y") → SPECIFICITY TEST below
 IF "create skill", "build skill", "new skill", "design skill" → Mode A: Gate 1
 IF "import skill", "check downloaded skill" → Mode C: Gate 0i
-IF "evaluate skill", "review skill", "улучши скилл" → Mode B: references/evaluate-refine.md
+IF "evaluate skill", "review skill", "улучши скилл", "improve skill" → Mode B: references/evaluate-refine.md
 IF general question about skills → Answer directly. Do NOT start protocol.
 ```
+
+Note: Specificity Test runs FIRST. Compound requests like "улучши скилл — он не триггерится на X" route to Mode D (not Mode B) because symptom is specific and localizable.
+
+### Specificity Test (for ambiguous "fix" / "broke" / "починить" queries)
+
+Ask: "Does user name a SPECIFIC symptom AND can it be localized to a section?"
+- BOTH yes → Mode D: references/edit-mode.md
+  Note: Mode D bypasses Gates 1-9. Gates were completed during original Mode A.
+- Either NO → ask ONE clarifying question: "Что именно сломано — конкретный пример?"
+  - Answer specific → Mode D
+  - Answer general → Mode B
 
 ## Gate 0i: Import Security Scan (Mode C)
 
@@ -38,15 +50,15 @@ IF insufficient → BLOCK: "What exact phrases trigger this? What tangible outpu
 
 ## Gate 2: Eval-Driven Development
 
-Anthropic's 5-step cycle:
-1. **Identify gaps** — run task WITHOUT skill, document failures
-2. **Create evaluations** — 3 test scenarios from examples
-3. **Establish baseline** — record unassisted performance
-4. **Write minimal instructions** — only what fixes observed gaps
-5. **Iterate** — compare with baseline after building
+**RED Phase (MANDATORY):** Run target task WITHOUT skill before writing anything.
+- Type 1 (can run now): execute one Gate 1 example → capture output
+- Type 2 (domain/MCP dependency): write "Claude would [X], gap: [Y]"
+- Simple skill exception (≤1 workflow + domain gap + clear from Gate 1) → Type 2 sufficient
+- BLOCK if neither done. Stop if Type 1 ≥90% complete → skill not needed.
 
-Simple skills: informal baseline. Complex: use references/eval-driven-development.md template.
-- [ ] Checkpoint: gaps identified, 3+ scenarios, baseline noted
+**GREEN Phase (Anthropic 5-step):** gaps → evaluations → baseline → minimal instructions → iterate.
+Details and exception criteria: references/eval-driven-development.md
+- [ ] Checkpoint: RED completed (Type 1 or 2), gaps documented, 3+ scenarios, baseline recorded
 
 ## Gate 3: Complexity Assessment
 
@@ -74,6 +86,11 @@ Simple automation? → SCRIPT (bash/python)
 Hybrid valid: Skill+MCP, Skill+Agent
 ```
 
+IF → SKILL: select pattern from references/architecture-patterns.md
+  (Sequential | Iterative | Context-Aware | Domain Intelligence | Multi-MCP)
+  Then validate: check 2 disqualifying criteria for chosen pattern.
+  BLOCK if pattern disqualified → choose different pattern.
+
 ## Gate 6: Structure Design (BLOCK: no freedom level)
 
 ### Sizing
@@ -90,9 +107,9 @@ Details: references/sizing-rules.md
 skill-name/
 ├── SKILL.md        # Core workflow (≤250 lines)
 ├── references/     # On-demand details
-├── scripts/        # Validation
+├── scripts/        # Validation + scaffolding
 ├── examples/       # Few-shot
-└── assets/         # Static (not loaded)
+└── assets/         # Static (not loaded into context)
 ```
 IF >3 references → recommend `context: fork`.
 
@@ -133,6 +150,8 @@ Details: references/description-patterns.md
 
 ## Gate 8: Content Generation
 
+Scaffold: run `scripts/init_skill.py <name> --path <dir>` to create directory structure.
+
 Write SKILL.md with:
 - **Frontmatter:** name (kebab-case) + directive description + minimal allowed-tools
 - **Style:** imperative voice, ## headers, IF/ELSE trees, `- [ ] Checkpoint:` after steps
@@ -144,28 +163,37 @@ Templates: references/templates/{minimal,workflow,expertise,mcp-enhancement}.md
 ## Gate 9: Validation
 
 **9a. Structural:** Run `scripts/validate_skill.py <dir>` — frontmatter, name, description, size, no XML.
-**9b. Scoring:** Apply references/scoring-rubric.md. Target: ≥85/100.
+**9b. Scoring:** Quick 5-axis screen (references/quick-reference.md Section 0). If ≥35/50 → full scoring-rubric.md. Target: ≥85/100.
 **9c. Triggers:** 10 positive + 5 negative prompts. Target: ≥90% trigger, <10% FP.
-**9d. Baseline:** Compare with Gate 2 metrics → confirm improvement.
+**9d. Baseline delta:** Compare with Gate 2 RED metrics. BLOCK if improvement <10% over baseline.
+**9e. Parallel eval [opt-in]:** Run when user requests deep eval OR Gate 9d delta <10% but sign of real improvement.
+  See references/parallel-eval.md — Grader → Comparator → Analyzer (staged, not all at once).
 
 IF <85 score or <90% trigger → iterate before delivery.
 - [ ] Checkpoint: all validation passes
 
 ## Output Protocol
 
-After ALL gates pass, output: skill name, location, score, triggers, scope, freedom levels, 3 test queries, reminder to `scan-all --check-overlap`.
+**Mode A/C:** skill name, location, score, triggers, scope, freedom levels, 3 test queries, reminder to `scan-all --check-overlap`. Package with `scripts/package_skill.py <dir>` for distribution.
+
+**Mode B:** evaluation report per references/evaluate-refine.md Step 8.
+
+**Mode D:** `Fixed: [symptom] | Root cause: [one sentence] | Changed: [file:section] | Verified: [paths tested]`
 
 ## References
 
 - [evaluate-refine.md](references/evaluate-refine.md) — Mode B: evaluate & refine workflow
+- [edit-mode.md](references/edit-mode.md) — Mode D: targeted fix without regression
 - [import-assessment.md](references/import-assessment.md) — Gate 0i: security scan
-- [eval-driven-development.md](references/eval-driven-development.md) — Gate 2: Anthropic 5-step cycle
+- [eval-driven-development.md](references/eval-driven-development.md) — Gate 2: RED phase + Anthropic 5-step cycle
+- [architecture-patterns.md](references/architecture-patterns.md) — Gate 5: 5 named patterns with validation
 - [description-patterns.md](references/description-patterns.md) — Gate 7: trigger engineering
 - [sizing-rules.md](references/sizing-rules.md) — Gate 6: spec constraints
 - [activation-hooks.md](references/activation-hooks.md) — Hook effectiveness data
 - [degrees-of-freedom.md](references/degrees-of-freedom.md) — Gate 6: freedom calibration
 - [scoring-rubric.md](references/scoring-rubric.md) — Gate 9: 100-point rubric
+- [parallel-eval.md](references/parallel-eval.md) — Gate 9e: 3-agent evaluation system
 - [anti-patterns.md](references/anti-patterns.md) — 20 anti-patterns with severity
-- [quick-reference.md](references/quick-reference.md) — 4 checklists
+- [quick-reference.md](references/quick-reference.md) — 5 checklists + 5-axis pre-screening
 - [claude-code-extensions.md](references/claude-code-extensions.md) — Frontmatter extensions
-- [tools-ecosystem.md](references/tools-ecosystem.md) — skill-scanner, cc-plugin-eval, SkillCheck
+- [tools-ecosystem.md](references/tools-ecosystem.md) — skill-scanner, cc-plugin-eval, init_skill.py, package_skill.py

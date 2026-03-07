@@ -103,11 +103,36 @@ Direct, Paraphrased, Edge case, Negative, Semantic
 Quality score (e.g., "92/100 Anti-slop").
 This is a structural linter — NOT an eval framework.
 
+## 4. init_skill.py
+
+**Purpose:** Scaffold new skill directory with SKILL.md template and example directories.
+**Location:** scripts/init_skill.py (in this skill)
+**Usage:**
+```bash
+python scripts/init_skill.py <skill-name> --path <output-directory>
+```
+**Creates:** skill directory, SKILL.md template with frontmatter placeholders, empty scripts/, references/, assets/
+**Use at:** Gate 8 (content generation) — run before writing SKILL.md manually.
+
+## 5. package_skill.py
+
+**Purpose:** Package skill into distributable .skill zip file with pre-validation.
+**Location:** scripts/package_skill.py (in this skill)
+**Usage:**
+```bash
+python scripts/package_skill.py <path/to/skill-folder> [output-directory]
+```
+**Validates:** YAML frontmatter, naming conventions, directory structure, description completeness.
+**Excludes:** `__pycache__`, `*.pyc`, `.DS_Store`, `evals/` directory.
+**Use at:** After Gate 9 — when skill passes all validation and is delivery-ready.
+
 ## Integration in skill-architect
 
 | Tool | Gate | Use |
 |------|------|-----|
 | skill-scanner | Gate 0i (Import) | Security scan of external skills |
 | skill-scanner scan-all | Gate 9 / Post-deploy | Overlap detection in collection |
-| cc-plugin-eval | Gate 9 (optional) | Automated trigger rate measurement |
-| SkillCheck | Gate 9 (optional) | Structural quality validation |
+| cc-plugin-eval | Gate 9c | Automated trigger rate measurement |
+| SkillCheck | Gate 9a | Structural quality validation |
+| init_skill.py | Gate 8 | Scaffold new skill directory |
+| package_skill.py | Post Gate 9 | Package for distribution |

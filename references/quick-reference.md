@@ -1,14 +1,35 @@
 # Quick Reference Card
 
-4 checklists for skill creation — use as pre-flight checks at each stage.
+5 checklists for skill lifecycle — use as pre-flight checks at each stage.
+
+## 0. Pre-Screening: 5-Axis Quick Score
+
+Before running full Mode B audit, screen with 5-axis (1-10 each, max 50):
+
+| Axis | Question |
+|------|----------|
+| Discovery | Does Claude find and activate this skill reliably? |
+| Clarity | Would another Claude understand instructions unambiguously? |
+| Efficiency | Does the skill reduce token cost vs baseline? |
+| Robustness | Does it handle edge cases without breaking? |
+| Completeness | Does it cover all scenarios from Gate 1 examples? |
+
+| Score | Action |
+|-------|--------|
+| ≥35/50 | Run full Mode B (scoring-rubric.md) |
+| <35/50 | Identify weak axes, fix before full rubric |
+
+Note: 5-axis is screening only. Final standard = 100-point rubric (≥85/100).
 
 ## 1. Before Writing a Skill
 
 ```
 [ ] Identified a gap Claude can't cover without the skill
+[ ] RED Phase completed (Type 1 run OR Type 2 documented)
+[ ] RED shows gap exists (Claude <90% without skill)
 [ ] Created 3+ test scenarios (positive, negative, edge case)
-[ ] Measured baseline (without skill): success rate, output quality
 [ ] Confirmed this needs a SKILL (not agent, MCP, or script)
+[ ] Architecture pattern selected and validated (Gate 5)
 ```
 
 ## 2. YAML Frontmatter Checklist
@@ -45,8 +66,22 @@
 [ ] Tested with 10 relevant queries (trigger rate ≥90%)
 [ ] Tested with 5 irrelevant queries (false positive rate <10%)
 [ ] Run same request 3-5 times (output format consistent)
-[ ] Compared baseline vs with-skill (improvement measurable)
+[ ] Compared baseline vs with-skill (delta measurable, >10%)
 [ ] validate_skill.py passes without errors
 [ ] No overlap with existing skills (scan-all --check-overlap)
 [ ] Score ≥85/100 by scoring rubric
+```
+
+## 5. Mode D: Before Editing an Existing Skill
+
+```
+[ ] Symptom is specific and named (not "плохо работает" but "не триггерится на X")
+[ ] Symptom maps to a signal location (see edit-mode.md Step 1 table)
+[ ] Asked clarifying question if symptom was vague — got specific answer
+[ ] Hypothesis stated BEFORE touching anything (Root cause + Prediction)
+[ ] Read ONLY the section containing the signal (not the whole skill)
+[ ] Fix touches ≤3 lines in ≤1 file
+[ ] No systemic issues discovered during read (if yes → switch to Mode B)
+[ ] Ran 2+ unaffected paths to verify no regression
+[ ] Output: "Fixed: X | Root cause: Y | Changed: Z | Verified: W"
 ```
