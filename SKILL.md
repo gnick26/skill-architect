@@ -29,6 +29,14 @@ Ask: "Does user name a SPECIFIC symptom AND can it be localized to a section?"
   - Answer specific → Mode D
   - Answer general → Mode B
 
+## Gate 0.6: Body-edit invariants
+
+Skill body = executable instrument. Every skill Write/Edit:
+- **Minimal, unambiguous** — only directives the model executes; model-read test each line; cut the rest.
+- **No volatile content** — no history, rationale, logs, time-bound or variable data.
+- **Consistency sweep** — editing an item that overlaps existing instructions ⇒ re-read all directives in the skill's context window; keep them consistent, ordered, non-duplicated.
+- **English only.**
+
 ## Gate 0i: Import Security Scan (Mode C)
 
 ```bash
